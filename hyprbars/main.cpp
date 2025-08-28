@@ -105,7 +105,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
             width = std::stof(left);
             height = std::stof(right);
         }
-    } catch (const std::exception& e) {
+    } catch (std::exception& e) {
         result.setError(std::string("failed to parse width/height: ") + e.what());
         return result;
     }

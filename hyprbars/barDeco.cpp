@@ -414,7 +414,7 @@ size_t CHyprBar::getVisibleButtonCount(Hyprlang::INT* const* PBARBUTTONPADDING, 
     size_t count          = 0;
 
     for (const auto& button : g_pGlobalState->buttons) {
-        const float buttonSpace = (button.size + **PBARBUTTONPADDING) * scale;
+        const float buttonSpace = (button.width + **PBARBUTTONPADDING) * scale;
         if (availableSpace >= buttonSpace) {
             count++;
             availableSpace -= buttonSpace;
