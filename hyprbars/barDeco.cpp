@@ -447,10 +447,10 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     // draw buttons
     int offset = **PBARPADDING * scale;
     for (size_t i = 0; i < visibleCount; ++i) {
-        const auto& button           = g_pGlobalState->buttons[i];
-        const auto  scaledButtonWidth = button.width * scale;
+        const auto& button             = g_pGlobalState->buttons[i];
+        const auto  scaledButtonWidth  = button.width * scale;
         const auto  scaledButtonHeight = button.height * scale;
-        const auto  scaledButtonsPad = **PBARBUTTONPADDING * scale;
+        const auto  scaledButtonsPad   = **PBARBUTTONPADDING * scale;
 
         const auto  pos   = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonWidth / 2.0 : offset + scaledButtonHeight / 2.0, bufferSize.y / 2.0}.floor();
         auto        color = button.bgcol;
