@@ -430,6 +430,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
     static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
     static auto* const PINACTIVECOLOR    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
+    static auto* const PBARBUTTONSHAPE   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_shape")->getDataStaticPtr();
 
     const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
     const auto         visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, bufferSize, scale);
@@ -447,10 +448,11 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     int offset = **PBARPADDING * scale;
     for (size_t i = 0; i < visibleCount; ++i) {
         const auto& button           = g_pGlobalState->buttons[i];
-        const auto  scaledButtonSize = button.size * scale;
+        const auto  scaledButtonWidth = button.width * scale;
+        const auto  scaledButtonHeight = button.height * scale;
         const auto  scaledButtonsPad = **PBARBUTTONPADDING * scale;
 
-        const auto  pos   = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0, bufferSize.y / 2.0}.floor();
+        const auto  pos   = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonWidth / 2.0 : offset + scaledButtonHeight / 2.0, bufferSize.y / 2.0}.floor();
         auto        color = button.bgcol;
 
         if (**PINACTIVECOLOR > 0) {
@@ -460,10 +462,15 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         }
 
         cairo_set_source_rgba(CAIRO, color.r, color.g, color.b, color.a);
-        cairo_arc(CAIRO, pos.x, pos.y, scaledButtonSize / 2, 0, 2 * M_PI);
+        if (*PBARBUTTONSHAPE == "circle") {
+            cairo_arc(CAIRO, pos.x, pos.y, scaledButtonWidth / 2, 0, 2 * M_PI);
+        }
+        else { // default to rectangle
+            cairo_rectangle(CAIRO, pos.x - scaledButtonWidth / 2.0, pos.y - scaledButtonHeight / 2.0, scaledButtonWidth, scaledButtonHeight);
+        }
         cairo_fill(CAIRO);
 
-        offset += scaledButtonsPad + scaledButtonSize;
+        offset += scaledButtonsPad + scaledButtonWidth;
     }
 
     // copy the data to an OpenGL texture we have
@@ -501,7 +508,8 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 
     for (size_t i = 0; i < visibleCount; ++i) {
         auto&      button           = g_pGlobalState->buttons[i];
-        const auto scaledButtonSize = button.size * scale;
+        const auto scaledButtonWidth = button.width * scale;
+        const auto scaledButtonHeight = button.height * scale;
         const auto scaledButtonsPad = **PBARBUTTONPADDING * scale;
 
         // check if hovering here
@@ -512,7 +520,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 
         if (button.iconTex->m_texID == 0 /* icon is not rendered */ && !button.icon.empty()) {
             // render icon
-            const Vector2D BUFSIZE = {scaledButtonSize, scaledButtonSize};
+            const Vector2D BUFSIZE = {scaledButtonWidth, scaledButtonHeight};
             auto           fgcol   = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
             renderText(button.iconTex, button.icon, fgcol, BUFSIZE, scale, button.size * 0.62);
@@ -521,12 +529,12 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         if (button.iconTex->m_texID == 0)
             continue;
 
-        CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize,
-                    scaledButtonSize};
+        CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonWidth : offset), barBox->y + (barBox->height - scaledButtonHeight) / 2.0, scaledButtonWidth,
+                    scaledButtonHeight};
 
         if (!**PICONONHOVER || (**PICONONHOVER && m_iButtonHoverState > 0))
             g_pHyprOpenGL->renderTexture(button.iconTex, pos, {.a = a});
-        offset += scaledButtonsPad + scaledButtonSize;
+        offset += scaledButtonsPad + scaledButtonWidth;
 
         bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
         if (hovering != currentBit) {

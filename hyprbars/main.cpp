@@ -73,11 +73,40 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
         return result;
     }
 
-    float size = 10;
+    // size can either be a float (for circle), or two floats separated by 'x' (for rect)
+
+    float width = 10;
+    float height = 10;
+
+    // helper: trim whitespace from both ends
+    auto trim = [](std::string s) -> std::string {
+        auto is_space = [](unsigned char c){ return std::isspace(c); };
+        s.erase(s.begin(), std::find_if_not(s.begin(), s.end(), is_space));
+        s.erase(std::find_if_not(s.rbegin(), s.rend(), is_space).base(), s.end());
+        return s;
+    };
+
+    std::string s = trim(vars[1]);
+
     try {
-        size = std::stof(vars[1]);
-    } catch (std::exception& e) {
-        result.setError("failed to parse size");
+        // look for 'x' or 'X' separator
+        std::size_t sep = s.find_first_of("xX");
+        if (sep == std::string::npos) {
+            // single float -> both width and height
+            width = std::stof(s);
+            height = width;
+        } else {
+            std::string left  = trim(s.substr(0, sep));
+            std::string right = trim(s.substr(sep + 1));
+            if (left.empty() || right.empty()) {
+                result.setError("invalid widthxheight format (empty value)");
+                return result;
+            }
+            width = std::stof(left);
+            height = std::stof(right);
+        }
+    } catch (const std::exception& e) {
+        result.setError(std::string("failed to parse width/height: ") + e.what());
         return result;
     }
 
@@ -100,7 +129,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
         return result;
     }
 
-    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], userfg, *fgcolor, *bgcolor, size, vars[2]});
+    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], userfg, *fgcolor, *bgcolor, width, height, vars[2]});
 
     for (auto& b : g_pGlobalState->bars) {
         b->m_bButtonsDirty = true;
@@ -140,6 +169,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment", Hyprlang::STRING{"right"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_padding", Hyprlang::INT{7});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding", Hyprlang::INT{5});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_button_shape", Hyprlang::STRING{"rect"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:enabled", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover", Hyprlang::INT{0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color", Hyprlang::INT{0}); // unset

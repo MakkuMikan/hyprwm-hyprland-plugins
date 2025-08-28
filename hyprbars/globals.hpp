@@ -10,7 +10,8 @@ struct SHyprButton {
     bool         userfg  = false;
     CHyprColor   fgcol   = CHyprColor(0, 0, 0, 0);
     CHyprColor   bgcol   = CHyprColor(0, 0, 0, 0);
-    float        size    = 10;
+    float        width   = 10;
+    float        height  = 10;
     std::string  icon    = "";
     SP<CTexture> iconTex = makeShared<CTexture>();
 };
