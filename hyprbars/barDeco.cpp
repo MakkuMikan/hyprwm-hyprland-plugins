@@ -260,8 +260,9 @@ bool CHyprBar::doButtonPress(Hyprlang::INT* const* PBARPADDING, Hyprlang::INT* c
 }
 
 void CHyprBar::renderText(SP<CTexture> out, const std::string& text, const CHyprColor& color, const Vector2D& bufferSize, const float scale, const int fontSize) {
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
-    const auto CAIRO        = cairo_create(CAIROSURFACE);
+    static auto* const PBUTTONFONT  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_font")->getDataStaticPtr();
+    const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
+    const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -273,7 +274,7 @@ void CHyprBar::renderText(SP<CTexture> out, const std::string& text, const CHypr
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, text.c_str(), -1);
 
-    PangoFontDescription* fontDesc = pango_font_description_from_string("sans");
+    PangoFontDescription* fontDesc = pango_font_description_from_string(*PBUTTONFONT);
     pango_font_description_set_size(fontDesc, fontSize * scale * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
@@ -464,8 +465,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         cairo_set_source_rgba(CAIRO, color.r, color.g, color.b, color.a);
         if (std::string{*PBARBUTTONSHAPE} == "circle") {
             cairo_arc(CAIRO, pos.x, pos.y, scaledButtonWidth / 2, 0, 2 * M_PI);
-        }
-        else { // default to rectangle
+        } else { // default to rectangle
             cairo_rectangle(CAIRO, pos.x - scaledButtonWidth / 2.0, pos.y - scaledButtonHeight / 2.0, scaledButtonWidth, scaledButtonHeight);
         }
         cairo_fill(CAIRO);
@@ -507,10 +507,10 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     float              noScaleOffset = **PBARPADDING;
 
     for (size_t i = 0; i < visibleCount; ++i) {
-        auto&      button           = g_pGlobalState->buttons[i];
-        const auto scaledButtonWidth = button.width * scale;
+        auto&      button             = g_pGlobalState->buttons[i];
+        const auto scaledButtonWidth  = button.width * scale;
         const auto scaledButtonHeight = button.height * scale;
-        const auto scaledButtonsPad = **PBARBUTTONPADDING * scale;
+        const auto scaledButtonsPad   = **PBARBUTTONPADDING * scale;
 
         // check if hovering here
         const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
