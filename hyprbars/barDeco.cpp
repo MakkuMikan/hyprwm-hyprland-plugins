@@ -462,7 +462,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         }
 
         cairo_set_source_rgba(CAIRO, color.r, color.g, color.b, color.a);
-        if (*PBARBUTTONSHAPE == "circle") {
+        if (std::string{*PBARBUTTONSHAPE} == "circle") {
             cairo_arc(CAIRO, pos.x, pos.y, scaledButtonWidth / 2, 0, 2 * M_PI);
         }
         else { // default to rectangle
