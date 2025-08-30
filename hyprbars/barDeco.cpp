@@ -529,7 +529,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 
         const CHyprColor bgCol = **PBACKGROUNDONHOVER > 0 && !hovering ? CHyprColor{0, 0, 0, 0} : button.bgcol;
 
-        if (button.iconTex->m_texID == 0 /* icon is not rendered */ && !button.icon.empty()) {
+        if (button.iconTex->m_texID == 0 /* icon is not rendered */ && !button.icon.empty() || hovering) {
             // render icon
             const Vector2D BUFSIZE = {scaledButtonWidth, scaledButtonHeight};
             auto           fgcol   = button.userfg ? button.fgcol : (bgCol.r + bgCol.g + bgCol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
