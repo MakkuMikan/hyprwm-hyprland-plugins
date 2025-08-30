@@ -427,6 +427,7 @@ size_t CHyprBar::getVisibleButtonCount(Hyprlang::INT* const* PBARBUTTONPADDING, 
 }
 
 void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
+    static auto* const PHEIGHT            = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
     static auto* const PBARBUTTONPADDING  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
     static auto* const PBARPADDING        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
     static auto* const PALIGNBUTTONS      = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
@@ -439,6 +440,8 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
 
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
+
+    float              noScaleOffset = **PBARPADDING;
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -457,9 +460,12 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         const auto  pos   = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonWidth / 2.0 : offset + scaledButtonHeight / 2.0, bufferSize.y / 2.0}.floor();
         auto        color = button.bgcol;
 
-        if (**PBACKGROUNDONHOVER > 0)
-            color = m_iButtonHoverState > 0 ? color : CHyprColor{0, 0, 0, 0};
-        else if (**PINACTIVECOLOR > 0) {
+        if (**PBACKGROUNDONHOVER > 0) {
+            // check if hovering here
+            if ((m_iButtonHoverState & (1 << i)) == 0) {
+                color = CHyprColor{0, 0, 0, 0};
+            }
+        } else if (**PINACTIVECOLOR > 0) {
             color = m_bWindowHasFocus ? color : CHyprColor(**PINACTIVECOLOR);
             if (button.userfg && button.iconTex->m_texID != 0)
                 button.iconTex->destroyTexture();
@@ -501,6 +507,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
     static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
     static auto* const PICONONHOVER      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover")->getDataStaticPtr();
+    static auto* const PBACKGROUNDONHOVER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:background_on_hover")->getDataStaticPtr();
 
     const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
     const auto         visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, Vector2D{barBox->w, barBox->h}, scale);
@@ -521,10 +528,12 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.width + **PBARBUTTONPADDING, currentPos.y + button.height);
         noScaleOffset += **PBARBUTTONPADDING + button.width;
 
+        const CHyprColor bgCol = **PBACKGROUNDONHOVER > 0 && !hovering ? CHyprColor{0, 0, 0, 0} : button.bgcol;
+
         if (button.iconTex->m_texID == 0 /* icon is not rendered */ && !button.icon.empty()) {
             // render icon
             const Vector2D BUFSIZE = {scaledButtonWidth, scaledButtonHeight};
-            auto           fgcol   = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
+            auto           fgcol   = button.userfg ? button.fgcol : (bgCol.r + bgCol.g + bgCol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
             renderText(button.iconTex, button.icon, fgcol, BUFSIZE, scale, button.fontSize * 0.62);
         }
@@ -571,14 +580,16 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     const auto         PWINDOW = m_pWindow.lock();
 
-    static auto* const PCOLOR            = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
-    static auto* const PHEIGHT           = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
-    static auto* const PPRECEDENCE       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
-    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
-    static auto* const PENABLETITLE      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->getDataStaticPtr();
-    static auto* const PENABLEBLUR       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
-    static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
-    static auto* const PINACTIVECOLOR    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
+    static auto* const PCOLOR             = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
+    static auto* const PHEIGHT            = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const PPRECEDENCE        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS      = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
+    static auto* const PENABLETITLE       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->getDataStaticPtr();
+    static auto* const PENABLEBLUR        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
+    static auto* const PENABLEBLURGLOBAL  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
+    static auto* const PINACTIVECOLOR     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
+    static auto* const PICONONHOVER       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover")->getDataStaticPtr();
+    static auto* const PBACKGROUNDONHOVER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:background_on_hover")->getDataStaticPtr();
 
     if (**PINACTIVECOLOR > 0) {
         bool currentWindowFocus = PWINDOW == g_pCompositor->m_lastWindow.lock();
@@ -586,6 +597,10 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
             m_bWindowHasFocus = currentWindowFocus;
             m_bButtonsDirty   = true;
         }
+    }
+
+    if (**PBACKGROUNDONHOVER > 0 && m_iButtonHoverState > 0) {
+        m_bButtonsDirty = true;
     }
 
     const CHyprColor DEST_COLOR = m_bForcedBarColor.value_or(**PCOLOR);
