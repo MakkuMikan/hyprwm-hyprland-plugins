@@ -427,11 +427,12 @@ size_t CHyprBar::getVisibleButtonCount(Hyprlang::INT* const* PBARBUTTONPADDING, 
 }
 
 void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
-    static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
-    static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
-    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
-    static auto* const PINACTIVECOLOR    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
-    static auto* const PBARBUTTONSHAPE   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_shape")->getDataStaticPtr();
+    static auto* const PBARBUTTONPADDING  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
+    static auto* const PBARPADDING        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS      = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
+    static auto* const PINACTIVECOLOR     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
+    static auto* const PBARBUTTONSHAPE    = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_shape")->getDataStaticPtr();
+    static auto* const PBACKGROUNDONHOVER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:background_on_hover")->getDataStaticPtr();
 
     const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
     const auto         visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, bufferSize, scale);
@@ -456,7 +457,9 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         const auto  pos   = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonWidth / 2.0 : offset + scaledButtonHeight / 2.0, bufferSize.y / 2.0}.floor();
         auto        color = button.bgcol;
 
-        if (**PINACTIVECOLOR > 0) {
+        if (**PBACKGROUNDONHOVER > 0)
+            color = m_iButtonHoverState > 0 ? color : CHyprColor("rgba(00000000)");
+        else if (**PINACTIVECOLOR > 0) {
             color = m_bWindowHasFocus ? color : CHyprColor(**PINACTIVECOLOR);
             if (button.userfg && button.iconTex->m_texID != 0)
                 button.iconTex->destroyTexture();
