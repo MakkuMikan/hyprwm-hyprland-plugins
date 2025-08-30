@@ -138,8 +138,9 @@ void CHyprBar::onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e) {
 
 void CHyprBar::onMouseMove(Vector2D coords) {
     // ensure proper redraws of button icons on hover when using hardware cursors
-    static auto* const PICONONHOVER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover")->getDataStaticPtr();
-    if (**PICONONHOVER)
+    static auto* const PICONONHOVER       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover")->getDataStaticPtr();
+    static auto* const PBACKGROUNDONHOVER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:background_on_hover")->getDataStaticPtr();
+    if (**PICONONHOVER || **PBACKGROUNDONHOVER)
         damageOnButtonHover();
 
     if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow))
