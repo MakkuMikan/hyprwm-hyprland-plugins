@@ -704,6 +704,11 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
             if (hovering != currentBit) {
                 m_iButtonHoverState ^= (1 << i);
                 m_bButtonsDirty = true;
+
+                if (**PBACKGROUNDONHOVER > 0) {
+                    button.iconTex->destroyTexture();
+                }
+
                 // damage to get rid of some artifacts when icons are "hidden"
                 damageEntire();
             }
