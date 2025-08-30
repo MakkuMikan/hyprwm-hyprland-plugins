@@ -458,7 +458,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         auto        color = button.bgcol;
 
         if (**PBACKGROUNDONHOVER > 0)
-            color = m_iButtonHoverState > 0 ? color : CHyprColor("rgba(00000000)");
+            color = m_iButtonHoverState > 0 ? color : CHyprColor(configStringToInt("rgba(00000000)"));
         else if (**PINACTIVECOLOR > 0) {
             color = m_bWindowHasFocus ? color : CHyprColor(**PINACTIVECOLOR);
             if (button.userfg && button.iconTex->m_texID != 0)
