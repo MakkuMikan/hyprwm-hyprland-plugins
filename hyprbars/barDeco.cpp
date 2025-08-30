@@ -684,20 +684,23 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     if (**PICONONHOVER > 0 || **PBACKGROUNDONHOVER > 0) {
         // check for hovered button
-        const auto COORDS        = cursorRelativeToBar();
-        const auto visibleCount  = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, Vector2D{textBox.w, textBox.h}, pMonitor->m_scale);
+        const auto COORDS       = cursorRelativeToBar();
+        const auto scale        = pMonitor->m_scale;
+        const auto visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, Vector2D{textBox.w, textBox.h}, scale);
+
         float      noScaleOffset = **PBARPADDING;
 
         for (size_t i = 0; i < visibleCount; ++i) {
-            auto& button = g_pGlobalState->buttons[i];
+            const auto& button = g_pGlobalState->buttons[i];
 
             // check if hovering here
             const auto BARBUF = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
-            Vector2D   currentPos =
+            const auto currentPos =
                 Vector2D{(BUTTONSRIGHT ? BARBUF.x - **PBARBUTTONPADDING - button.width - noScaleOffset : noScaleOffset), (BARBUF.y - button.height) / 2.0}.floor();
-            bool hovering = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.width + **PBARBUTTONPADDING, currentPos.y + button.height);
+            const bool hovering = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.width + **PBARBUTTONPADDING, currentPos.y + button.height);
+            noScaleOffset += **PBARBUTTONPADDING + button.width;
 
-            bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
+            const bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
             if (hovering != currentBit) {
                 m_iButtonHoverState ^= (1 << i);
                 m_bButtonsDirty = true;
