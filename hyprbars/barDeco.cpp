@@ -523,7 +523,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
             const Vector2D BUFSIZE = {scaledButtonWidth, scaledButtonHeight};
             auto           fgcol   = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
-            renderText(button.iconTex, button.icon, fgcol, BUFSIZE, scale, button.width * 0.62);
+            renderText(button.iconTex, button.icon, fgcol, BUFSIZE, scale, button.fontSize * 0.62);
         }
 
         if (button.iconTex->m_texID == 0)

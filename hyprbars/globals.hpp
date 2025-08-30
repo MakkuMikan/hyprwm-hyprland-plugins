@@ -12,6 +12,7 @@ struct SHyprButton {
     CHyprColor   bgcol   = CHyprColor(0, 0, 0, 0);
     float        width   = 10;
     float        height  = 10;
+    float        fontSize = 10;
     std::string  icon    = "";
     SP<CTexture> iconTex = makeShared<CTexture>();
 };

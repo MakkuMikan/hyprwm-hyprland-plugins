@@ -66,10 +66,10 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
 
     Hyprlang::CParseResult result;
 
-    // hyprbars-button = bgcolor, size, icon, action, fgcolor
+    // hyprbars-button = bgcolor, size, fontsize, icon, action, fgcolor
 
-    if (vars[0].empty() || vars[1].empty()) {
-        result.setError("bgcolor and size cannot be empty");
+    if (vars[0].empty() || vars[1].empty() || vars[2].empty()) {
+        result.setError("bgcolor, size and fontsize cannot be empty");
         return result;
     }
 
@@ -110,6 +110,14 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
         return result;
     }
 
+    float fontsize = 10;
+    try {
+        fontsize = std::stof(vars[2]);
+    } catch (std::exception& e) {
+        result.setError((std::string("failed to parse fontsize: ") + e.what()).c_str());
+        return result;
+    }
+
     bool userfg  = false;
     auto fgcolor = configStringToInt("rgb(ffffff)");
     auto bgcolor = configStringToInt(vars[0]);
@@ -119,9 +127,9 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
         return result;
     }
 
-    if (vars.size() == 5) {
+    if (vars.size() == 6) {
         userfg  = true;
-        fgcolor = configStringToInt(vars[4]);
+        fgcolor = configStringToInt(vars[5]);
     }
 
     if (!fgcolor) {
@@ -129,7 +137,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
         return result;
     }
 
-    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], userfg, *fgcolor, *bgcolor, width, height, vars[2]});
+    g_pGlobalState->buttons.push_back(SHyprButton{vars[4], userfg, *fgcolor, *bgcolor, width, height, fontsize, vars[3]});
 
     for (auto& b : g_pGlobalState->bars) {
         b->m_bButtonsDirty = true;
