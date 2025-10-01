@@ -5,7 +5,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
-#include <hyprland/src/managers/AnimationManager.hpp>
+#include <hyprland/src/managers/animation/AnimationManager.hpp>
+#include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #undef private
@@ -110,8 +111,8 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         // (skip_empty), stop when we wrap, leaving the rest of the workspace
         // ID's set to WORKSPACE_INVALID
         for (size_t i = 1; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
-            auto& image       = images[i];
-            currentID         = getWorkspaceIDNameFromString(selector + "+" + std::to_string(i)).id;
+            auto& image = images[i];
+            currentID   = getWorkspaceIDNameFromString(selector + "+" + std::to_string(i)).id;
             if (currentID <= methodStartID)
                 break;
             image.workspaceID = currentID;
@@ -154,9 +155,9 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             currentid = i;
 
         if (PWORKSPACE) {
-            image.pWorkspace          = PWORKSPACE;
+            image.pWorkspace            = PWORKSPACE;
             PMONITOR->m_activeWorkspace = PWORKSPACE;
-            PWORKSPACE->startAnim(true, true, true);
+            g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
             PWORKSPACE->m_visible = true;
 
             if (PWORKSPACE == startedOn)
@@ -165,7 +166,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
             PWORKSPACE->m_visible = false;
-            PWORKSPACE->startAnim(false, false, true);
+            g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
 
             if (PWORKSPACE == startedOn)
                 PMONITOR->m_activeSpecialWorkspace.reset();
@@ -183,8 +184,8 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     PMONITOR->m_activeSpecialWorkspace = openSpecial;
     PMONITOR->m_activeWorkspace        = startedOn;
-    startedOn->m_visible            = true;
-    startedOn->startAnim(true, true, true);
+    startedOn->m_visible               = true;
+    g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
 
     // zoom on the current workspace.
     // const auto& TILE = images[std::clamp(currentid, 0, SIDE_LENGTH * SIDE_LENGTH)];
@@ -224,11 +225,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         info.cancelled = true;
 
-        // get tile x,y
-        int x = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
-        int y = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
-
-        closeOnID = x + y * SIDE_LENGTH;
+        selectHoveredWorkspace();
 
         close();
     };
@@ -245,8 +242,8 @@ void COverview::selectHoveredWorkspace() {
         return;
 
     // get tile x,y
-    int x = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
-    int y = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
+    int x     = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
+    int y     = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
     closeOnID = x + y * SIDE_LENGTH;
 }
 
@@ -294,7 +291,7 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     if (PWORKSPACE) {
         pMonitor->m_activeWorkspace = PWORKSPACE;
-        PWORKSPACE->startAnim(true, true, true);
+        g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         PWORKSPACE->m_visible = true;
 
         if (PWORKSPACE == startedOn)
@@ -303,7 +300,7 @@ void COverview::redrawID(int id, bool forcelowres) {
         g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, Time::steadyNow(), monbox);
 
         PWORKSPACE->m_visible = false;
-        PWORKSPACE->startAnim(false, false, true);
+        g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
 
         if (PWORKSPACE == startedOn)
             pMonitor->m_activeSpecialWorkspace.reset();
@@ -315,8 +312,8 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     pMonitor->m_activeSpecialWorkspace = openSpecial;
     pMonitor->m_activeWorkspace        = startedOn;
-    startedOn->m_visible            = true;
-    startedOn->startAnim(true, true, true);
+    startedOn->m_visible               = true;
+    g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
 
     blockOverviewRendering = false;
 }
@@ -336,12 +333,12 @@ void COverview::damage() {
 void COverview::onDamageReported() {
     damageDirty = true;
 
-    Vector2D    SIZE = size->value();
+    Vector2D SIZE = size->value();
 
-    Vector2D    tileSize       = (SIZE / SIDE_LENGTH);
-    Vector2D    tileRenderSize = (SIZE - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
+    Vector2D tileSize       = (SIZE / SIDE_LENGTH);
+    Vector2D tileRenderSize = (SIZE - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
     // const auto& TILE           = images[std::clamp(openedID, 0, SIDE_LENGTH * SIDE_LENGTH)];
-    CBox        texbox         = CBox{(openedID % SIDE_LENGTH) * tileRenderSize.x + (openedID % SIDE_LENGTH) * GAP_WIDTH,
+    CBox texbox = CBox{(openedID % SIDE_LENGTH) * tileRenderSize.x + (openedID % SIDE_LENGTH) * GAP_WIDTH,
                        (openedID / SIDE_LENGTH) * tileRenderSize.y + (openedID / SIDE_LENGTH) * GAP_WIDTH, tileRenderSize.x, tileRenderSize.y}
                       .translate(pMonitor->m_position);
 
@@ -389,8 +386,8 @@ void COverview::close() {
         else
             g_pKeybindManager->changeworkspace(NEWIDWS->getConfigName());
 
-        pMonitor->m_activeWorkspace->startAnim(true, true, true);
-        OLDWS->startAnim(false, false, true);
+        g_pDesktopAnimationManager->startAnimation(pMonitor->m_activeWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
+        g_pDesktopAnimationManager->startAnimation(OLDWS, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
 
         startedOn = pMonitor->m_activeWorkspace;
     }
@@ -405,7 +402,7 @@ void COverview::onPreRender() {
 
 void COverview::onWorkspaceChange() {
     if (valid(startedOn))
-        startedOn->startAnim(false, false, true);
+        g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
     else
         startedOn = pMonitor->m_activeWorkspace;
 
@@ -459,19 +456,30 @@ static Vector2D lerp(const Vector2D& from, const Vector2D& to, const float perc)
     return Vector2D{lerp(from.x, to.x, perc), lerp(from.y, to.y, perc)};
 }
 
+void COverview::setClosing(bool closing_) {
+    closing = closing_;
+}
+
+void COverview::resetSwipe() {
+    swipeWasCommenced = false;
+}
+
 void COverview::onSwipeUpdate(double delta) {
+    m_isSwiping = true;
+
     if (swipeWasCommenced)
         return;
 
     static auto* const* PDISTANCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
 
-    const float         PERC = 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
+    const float         PERC               = closing ? std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
+    const auto          WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
 
     Vector2D            tileSize = (pMonitor->m_size / SIDE_LENGTH);
 
     const auto          SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
-    const auto          POSMAX =
-        (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{openedID % SIDE_LENGTH, openedID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
+    const auto          POSMAX  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
+        (pMonitor->m_size / tileSize);
 
     const auto SIZEMIN = pMonitor->m_size;
     const auto POSMIN  = Vector2D{0, 0};
@@ -494,4 +502,5 @@ void COverview::onSwipeEnd() {
     size->setCallbackOnEnd([this](WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) { redrawAll(true); });
 
     swipeWasCommenced = true;
+    m_isSwiping       = false;
 }

@@ -47,6 +47,7 @@ struct SColumnData {
     float                                 columnSize  = 1.F;
     float                                 columnWidth = 1.F;
     WP<SWorkspaceData>                    workspace;
+    WP<SScrollingWindowData>              lastFocusedWindow;
 
     WP<SColumnData>                       self;
 };
@@ -58,7 +59,7 @@ struct SWorkspaceData {
 
     PHLWORKSPACEREF              workspace;
     std::vector<SP<SColumnData>> columns;
-    int                          leftOffset = 0;
+    float                        leftOffset = 0;
 
     SP<SColumnData>              add();
     SP<SColumnData>              add(int after);
@@ -72,6 +73,7 @@ struct SWorkspaceData {
     bool                         visible(SP<SColumnData> c);
     void                         centerCol(SP<SColumnData> c);
     void                         fitCol(SP<SColumnData> c);
+    void                         centerOrFitCol(SP<SColumnData> c);
 
     void                         recalculate(bool forceInstant = false);
 
@@ -110,14 +112,21 @@ class CScrollingLayout : public IHyprLayout {
     SP<HOOK_CALLBACK_FN>            m_focusCallback;
 
     struct {
+        bool isMovingColumn    = false;
+        int  targetWorkspaceID = -1;
+    } m_columnMoveState;
+
+    struct {
         std::vector<float> configuredWidths;
     } m_config;
 
+    SP<SScrollingWindowData> findBestNeighbor(SP<SScrollingWindowData> pCurrent, SP<SColumnData> pTargetCol);
     SP<SWorkspaceData>       dataFor(PHLWORKSPACE ws);
     SP<SScrollingWindowData> dataFor(PHLWINDOW w);
     SP<SWorkspaceData>       currentWorkspaceData();
 
     void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool instant, bool hasWindowsRight, bool hasWindowsLeft);
+    void                     focusWindowUpdate(PHLWINDOW pWindow);
 
     friend struct SWorkspaceData;
 };
